@@ -1,21 +1,23 @@
 #!/bin/bash
 
 cd ../../.. || exit
-SAPIENS_CHECKPOINT_ROOT=/home/${USER}/sapiens_lite_host
+SAPIENS_CHECKPOINT_ROOT=/media/dalco/Data_Chengwei/garment-data-processing/sapiens/checkpoints
 
 MODE='torchscript' ## original. no optimizations (slow). full precision inference.
 # MODE='bfloat16' ## A100 gpus. faster inference at bfloat16
 
-SAPIENS_CHECKPOINT_ROOT=$SAPIENS_CHECKPOINT_ROOT/$MODE
+SAPIENS_CHECKPOINT_ROOT=$SAPIENS_CHECKPOINT_ROOT
 
 #----------------------------set your input and output directories----------------------------------------------
-INPUT='../pose/demo/data/itw_videos/reel1'
-OUTPUT="/home/${USER}/Desktop/sapiens/seg/Outputs/vis/itw_videos/reel1_seg"
+#INPUT='/mnt/server01B/work/vestir/garment-digitization/Inputs/V210F_StripyJumper_M_GP/Seq1/sapiens_mask/'
+INPUT='/mnt/server01B/work/vestir/garment-digitization/Initialization/sapines_tmp'
+#INPUT='/media/dalco/Data_Chengwei/camera_calib_data/tmp/mesh_renders_for_sapiens/'
+OUTPUT=$INPUT
 
 #--------------------------MODEL CARD---------------
 # MODEL_NAME='sapiens_0.3b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_0.3b/sapiens_0.3b_goliath_best_goliath_mIoU_7673_epoch_194_$MODE.pt2
 # MODEL_NAME='sapiens_0.6b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_0.6b/sapiens_0.6b_goliath_best_goliath_mIoU_7777_epoch_178_$MODE.pt2
-MODEL_NAME='sapiens_1b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_1b/sapiens_1b_goliath_best_goliath_mIoU_7994_epoch_151_$MODE.pt2
+MODEL_NAME='sapiens_1b_seg'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/sapiens_1b_goliath_best_goliath_mIoU_7994_epoch_151_$MODE.pt2
 
 OUTPUT=$OUTPUT/$MODEL_NAME
 

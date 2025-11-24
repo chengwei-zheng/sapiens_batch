@@ -1,29 +1,33 @@
 #!/bin/bash
 
+cd "$(dirname "$0")" || exit
+
 cd ../../.. || exit
-SAPIENS_CHECKPOINT_ROOT=/media/dalco/Data_Chengwei/garment-data-processing/sapiens/checkpoints
+SAPIENS_CHECKPOINT_ROOT=/mnt/server01B/work/vestir/garment-digitization/Initialization/Sapiens_checkpoints
+MODE='torchscript' ## original. no optimizations (slow). full precision inference.
+# MODE='bfloat16' ## A100 gpus. faster inference at bfloat16
 
 #----------------------------set your input and output directories----------------------------------------------
-INPUT='/media/dalco/Data_Chengwei/garment-data-processing/sapiens/pose/demo/data/itw_videos/reel1'
-OUTPUT="/media/dalco/Data_Chengwei/garment-data-processing/sapiens/output/reel1_seg"
+SEQ=$1
+CAM=$(printf "%04d" $2)
+GPU_ID=$3
+echo "Estimate normal for ${SEQ} cmr ${CAM} on GPU ${GPU_ID} ..."
+
+INPUT=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/rgb_images
+SEG_DIR=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/foreground_masks_npy
+OUTPUT=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/normals
 
 #--------------------------MODEL CARD---------------
-# MODEL_NAME='sapiens_0.3b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_0.3b/sapiens_0.3b_goliath_best_goliath_mIoU_7673_epoch_194.pth
-# MODEL_NAME='sapiens_0.6b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_0.6b/sapiens_0.6b_goliath_best_goliath_mIoU_7777_epoch_178.pth
-#MODEL_NAME='sapiens_1b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_1b/sapiens_1b_goliath_best_goliath_mIoU_7994_epoch_151.pth
-MODEL_NAME='sapiens_1b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/sapiens_1b_goliath_best_goliath_mIoU_7994_epoch_151_torchscript.pt2
+CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/sapiens_2b_normal_render_people_epoch_70_$MODE.pt2
 
-DATASET='goliath'
-MODEL="${MODEL_NAME}_${DATASET}-1024x768"
-CONFIG_FILE="/media/dalco/Data_Chengwei/garment-data-processing/sapiens/seg/configs/sapiens_seg/${DATASET}/${MODEL}.py"
-OUTPUT=$OUTPUT/$MODEL_NAME
 
 ##-------------------------------------inference-------------------------------------
-RUN_FILE='/media/dalco/Data_Chengwei/garment-data-processing/sapiens/seg/demo/demo_seg_vis.py'
+RUN_FILE='demo/vis_normal.py'
 
-## number of inference jobs per gpu, total number of gpus and gpu ids
-JOBS_PER_GPU=1; TOTAL_GPUS=1; VALID_GPU_IDS=(0 1 2 3 4 5 6 7)
-TOTAL_JOBS=$((JOBS_PER_GPU * TOTAL_GPUS))
+# JOBS_PER_GPU=1; TOTAL_GPUS=8; VALID_GPU_IDS=(0 1 2 3 4 5 6 7)
+JOBS_PER_GPU=1; TOTAL_GPUS=1; VALID_GPU_IDS=($GPU_ID)
+
+BATCH_SIZE=8
 
 # Find all images and sort them, then write to a temporary text file
 IMAGE_LIST="${INPUT}/image_list.txt"
@@ -37,8 +41,15 @@ fi
 
 # Count images and calculate the number of images per text file
 NUM_IMAGES=$(wc -l < "${IMAGE_LIST}")
-IMAGES_PER_FILE=$((NUM_IMAGES / TOTAL_JOBS))
-EXTRA_IMAGES=$((NUM_IMAGES % TOTAL_JOBS))
+if ((TOTAL_GPUS > NUM_IMAGES / BATCH_SIZE)); then
+  TOTAL_JOBS=$(( (NUM_IMAGES + BATCH_SIZE - 1) / BATCH_SIZE))
+  IMAGES_PER_FILE=$((BATCH_SIZE))
+  EXTRA_IMAGES=$((NUM_IMAGES - ((TOTAL_JOBS - 1) * BATCH_SIZE)  ))
+else
+  TOTAL_JOBS=$((JOBS_PER_GPU * TOTAL_GPUS))
+  IMAGES_PER_FILE=$((NUM_IMAGES / TOTAL_JOBS))
+  EXTRA_IMAGES=$((NUM_IMAGES % TOTAL_JOBS))
+fi
 
 export TF_CPP_MIN_LOG_LEVEL=2
 echo "Distributing ${NUM_IMAGES} image paths into ${TOTAL_JOBS} jobs."
@@ -59,9 +70,10 @@ done
 for ((i=0; i<TOTAL_JOBS; i++)); do
   GPU_ID=$((i % TOTAL_GPUS))
   CUDA_VISIBLE_DEVICES=${VALID_GPU_IDS[GPU_ID]} python ${RUN_FILE} \
-    ${CONFIG_FILE} \
     ${CHECKPOINT} \
     --input "${INPUT}/image_paths_$((i+1)).txt" \
+    --seg_dir ${SEG_DIR} \
+    --batch-size="${BATCH_SIZE}" \
     --output-root="${OUTPUT}" ## add & to process in background
   # Allow a short delay between starting each job to reduce system load spikes
   sleep 1
