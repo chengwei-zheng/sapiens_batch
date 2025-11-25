@@ -3,7 +3,8 @@
 cd "$(dirname "$0")" || exit
 
 cd ../../.. || exit
-SAPIENS_CHECKPOINT_ROOT=/mnt/server01B/work/vestir/garment-digitization/Initialization/Sapiens_checkpoints
+SERVER_ROOT=/mnt/server01B/work/vestir/garment-digitization
+SAPIENS_CHECKPOINT_ROOT=$SERVER_ROOT/Initialization/Sapiens_checkpoints
 MODE='torchscript' ## original. no optimizations (slow). full precision inference.
 # MODE='bfloat16' ## A100 gpus. faster inference at bfloat16
 
@@ -13,9 +14,10 @@ CAM=$(printf "%04d" $2)
 GPU_ID=$3
 echo "Estimate normal for ${SEQ} cmr ${CAM} on GPU ${GPU_ID} ..."
 
-INPUT=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/rgb_images
-SEG_DIR=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/foreground_masks_npy
-OUTPUT=/mnt/server01B/work/vestir/garment-digitization/Inputs_3x/$SEQ/Seq1/$CAM/normals
+INPUT=$SERVER_ROOT/Inputs_3x/$SEQ/Seq1/$CAM/rgb_images
+SEG_DIR=$SERVER_ROOT/Inputs_3x/$SEQ/Seq1/$CAM/foreground_masks_npy
+OUTPUT=$SERVER_ROOT/Inputs_3x/$SEQ/Seq1/$CAM/normals
+#echo "INPUT: ${INPUT}; OUTPUT ${OUTPUT}"
 
 #--------------------------MODEL CARD---------------
 CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/sapiens_2b_normal_render_people_epoch_70_$MODE.pt2
