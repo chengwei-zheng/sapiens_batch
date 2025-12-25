@@ -1,19 +1,16 @@
 #!/bin/bash
 
 cd ../../.. || exit
-SAPIENS_CHECKPOINT_ROOT=/media/dalco/Data_Chengwei/garment-data-processing/sapiens/checkpoints
-
+ROOT_DIR=/mnt/mocap_b/work/vestir/garment-digitization
+SAPIENS_CHECKPOINT_ROOT=$ROOT_DIR/Initialization/Sapiens_checkpoints
 MODE='torchscript' ## original. no optimizations (slow). full precision inference.
 # MODE='bfloat16' ## A100 gpus. faster inference at bfloat16
-
 SAPIENS_CHECKPOINT_ROOT=$SAPIENS_CHECKPOINT_ROOT
 
 #----------------------------set your input and output directories----------------------------------------------
-INPUT="/mnt/server01B/work/vestir/garment-digitization/Initialization/sapines_tmp"
-#SEG_DIR="/home/${USER}/Desktop/sapiens/seg/Outputs/vis/itw_videos/reel1_seg/sapiens_1b"
-#OUTPUT="/home/${USER}/Desktop/sapiens/seg/Outputs/vis/itw_videos/reel1_normal"
-SEG_DIR=$INPUT/"sapiens_1b_seg"
-OUTPUT=$INPUT
+INPUT=$ROOT_DIR/Inputs/sapiens_input_temp/images
+SEG_DIR=$ROOT_DIR/Inputs/sapiens_input_temp/masks_npy
+OUTPUT=$ROOT_DIR/Inputs/sapiens_input_temp/normals
 
 #--------------------------MODEL CARD---------------
 # MODEL_NAME='sapiens_0.3b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/normal/checkpoints/sapiens_0.3b/sapiens_0.3b_normal_render_people_epoch_66_$MODE.pt2
@@ -21,7 +18,7 @@ OUTPUT=$INPUT
 # MODEL_NAME='sapiens_1b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/normal/checkpoints/sapiens_1b/sapiens_1b_normal_render_people_epoch_115_$MODE.pt2
 MODEL_NAME='sapiens_2b_normal'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/sapiens_2b_normal_render_people_epoch_70_$MODE.pt2
 
-OUTPUT=$OUTPUT/$MODEL_NAME
+# OUTPUT=$OUTPUT/$MODEL_NAME
 
 ##-------------------------------------inference-------------------------------------
 RUN_FILE='demo/vis_normal.py'

@@ -3,7 +3,7 @@
 cd "$(dirname "$0")" || exit
 
 cd ../../.. || exit
-SERVER_ROOT=/mnt/server01B/work/vestir/garment-digitization
+SERVER_ROOT=/mnt/mocap_b/work/vestir/garment-digitization
 SAPIENS_CHECKPOINT_ROOT=$SERVER_ROOT/Initialization/Sapiens_checkpoints
 MODE='torchscript' ## original. no optimizations (slow). full precision inference.
 # MODE='bfloat16' ## A100 gpus. faster inference at bfloat16
